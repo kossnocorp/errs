@@ -129,7 +129,11 @@ fn diagnostics_after_edits(
 
 /// Reads messages until the response to `id`, answering the server's own requests (configuration, registrations)
 /// with `null`.
-fn response(stdout: &mut BufReader<ChildStdout>, id: u32, send: &mut impl FnMut(String)) -> String {
+pub fn response(
+    stdout: &mut BufReader<ChildStdout>,
+    id: u32,
+    send: &mut impl FnMut(String),
+) -> String {
     loop {
         let message = read_message(stdout);
         let request_id = message.find("\"method\":").and(field(&message, "\"id\":"));
@@ -168,7 +172,7 @@ fn field(message: &str, key: &str) -> Option<String> {
     Some(message[start..end].to_string())
 }
 
-fn json_string(s: &str) -> String {
+pub fn json_string(s: &str) -> String {
     let mut out = String::from("\"");
     out = s.chars().fold(out, |mut out, c| {
         match c {

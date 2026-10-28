@@ -1677,6 +1677,12 @@ type Uncapitalize<S extends string> = intrinsic;
  */
 type NoInfer<T> = intrinsic;
 
+/** ErrorScript: return value type with an exactly checked inferred error type. */
+type Returns<ReturnType, ErrorType> = intrinsic;
+
+/** ErrorScript: inferred error types of a callable, deferred for callback parameters and generics. */
+type Throws<F> = intrinsic;
+
 /**
  * Marker for contextual 'this' type
  */

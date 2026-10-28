@@ -989,6 +989,8 @@ pub(crate) fn merge_compiler_options(
     let Some(source_options) = source_options else {
         return;
     };
+    // ErrorScript: optional booleans preserve an explicit false across extends chains.
+    target_options.error_options.merge(source_options.error_options);
 
     // Collect explicitly null field names from raw JSON
     let mut explicit_null_fields: FxHashSet<&str> = FxHashSet::default();

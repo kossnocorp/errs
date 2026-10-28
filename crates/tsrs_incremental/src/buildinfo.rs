@@ -940,6 +940,10 @@ impl BuildInfo {
         let mut options = tsrs_core::CompilerOptions::default();
         if let Some(entries) = &self.options {
             for (option, value) in entries {
+                // ErrorScript: restore even outside ErrorScript mode so old fork diagnostics are invalidated.
+                if errs::config::read_build_info(&mut options, option, value) {
+                    continue;
+                }
                 let value = json_to_option_value(value);
                 if !build_info_directory.is_empty()
                     && let Some(result) = tsoptions::convert_option_to_absolute_path(

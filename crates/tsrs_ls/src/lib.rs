@@ -6,6 +6,8 @@ mod autoinsert;
 mod callhierarchy;
 pub mod change;
 mod codeactions;
+// ErrorScript: isolated native quick-fix provider.
+mod errs;
 mod codeactions_fixclassincorrectlyimplementsinterface;
 mod codeactions_fixmissingtypeannotation;
 mod codeactions_importfixes;

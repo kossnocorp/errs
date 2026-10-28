@@ -1,0 +1,109 @@
+// @case correct 0 0
+function correct(): Returns<number, TypeError> { if (flag) throw new TypeError('x'); return 123; }
+const value: number = correct();
+// @case broader 1 0
+function broader(): Returns<number, Error> { if (flag) throw new TypeError('x'); return 123; }
+// @case wrong 1 0
+function wrong(): Returns<number, RangeError> { if (flag) throw new TypeError('x'); return 123; }
+// @case extra 1 0
+function extra(): Returns<number, TypeError | RangeError> { if (flag) throw new TypeError('x'); return 123; }
+// @case missing_union_member 1 0
+function missingUnion(): Returns<void, TypeError> { if (flag) throw new TypeError('x'); throw new RangeError('x'); }
+// @case exact_union 0 0
+function union(): Returns<void, RangeError | TypeError> { if (flag) throw new TypeError('x'); throw new RangeError('x'); }
+// @case no_errors 0 0
+function pure(): Returns<number, never> { return 123; }
+function inferredPure() { return 123; }
+// @case false_claim 1 0
+function pure(): Returns<number, Error> { return 123; }
+// @case catch 0 0
+function caught(): Returns<void, never> { try { throw new Error('x'); } catch {} }
+// @case rethrow 0 0
+function rethrow(): Returns<void, TypeError> { try { throw new TypeError('x'); } catch (error) { throw error; } }
+// @case missing_annotation 0 1
+function missing() { throw new Error('x'); }
+// @case concrete_annotation_hint 0 1
+function literalHint() { if (flag) throw new TypeError('x'); return 'string' as const; }
+// @case ordinary_annotation 0 1
+function ordinary(): void { throw new Error('x'); }
+// @case generic 0 0
+function generic<E>(error: E): Returns<void, E> { throw error; }
+// @case alias 0 0
+type Result<V, E = TypeError> = Returns<V, E>;
+function alias(): Result<number> { if (flag) throw new TypeError('x'); return 123; }
+// @case nested_alias 0 0
+type First<V, E> = Returns<V, E>;
+type Second<E> = First<number, E>;
+function nested(): Second<TypeError> { if (flag) throw new TypeError('x'); return 123; }
+// @case promise_outer 0 0
+async function asyncOuter(): Returns<Promise<number>, TypeError> { if (flag) throw new TypeError('x'); return 123; }
+const value: Promise<number> = asyncOuter();
+// @case promise_inner 0 0
+async function asyncInner(): Promise<Returns<number, TypeError>> { if (flag) throw new TypeError('x'); return 123; }
+// @case async_missing 0 1
+async function asyncMissing() { throw new Error('x'); }
+// @case generator 0 0
+function* generator(): Returns<Generator<number>, Error> { yield 123; throw new Error('x'); }
+// @case arrow 0 0
+const arrow = (): Returns<number, TypeError> => { if (flag) throw new TypeError('x'); return 123; };
+// @case contextual 0 0
+const contextual: () => Returns<number, TypeError> = () => { if (flag) throw new TypeError('x'); return 123; };
+// @case contextual_wrong 1 0
+const contextual: () => Returns<number, RangeError> = () => { if (flag) throw new TypeError('x'); return 123; };
+// @case contextual_generic_alias 0 0
+type Callable<E> = () => Returns<number, E>;
+const contextual: Callable<TypeError> = () => { if (flag) throw new TypeError('x'); return 123; };
+// @case method 0 0
+class Example { method(): Returns<void, Error> { throw new Error('x'); } }
+// @case method_missing 0 1
+class Example { method() { throw new Error('x'); } }
+// @case unannotatable 0 0
+class Example { constructor() { throw new Error('x'); } set value(value: number) { throw new Error('x'); } }
+// @case overloads 0 0
+function overloaded(value: string): Returns<void, Error>;
+function overloaded(value: number): Returns<void, Error>;
+function overloaded(value: string | number) { throw new Error('x'); }
+// @case overload_missing 0 1
+function overloaded(value: string): Returns<void, Error>;
+function overloaded(value: number): void;
+function overloaded(value: string | number) { throw new Error('x'); }
+// @case unknown_external 0 0
+declare function external(): number;
+function unknown() { return external(); }
+function explicit(): Returns<number, unknown> { return external(); }
+// @case unknown_contract 1 0
+declare function external(): number;
+function incorrect(): Returns<number, never> { return external(); }
+// @case unknown_throw 0 0
+function explicit(error: unknown): Returns<void, unknown> { throw error; }
+// @case any_does_not_bypass 1 0
+function explicit(): Returns<void, any> { throw new Error('x'); }
+// @case shadowed 0 1
+type Returns<V, E> = V;
+function shadowed(): Returns<void, Error> { throw new Error('x'); }
+// @case literal 0 0
+function literal(): Returns<void, 'failed'> { throw 'failed'; }
+// @case literal_broader 1 0
+function literal(): Returns<void, string> { throw 'failed'; }
+// @case anonymous 0 0
+function anonymous(): Returns<void, { code: number }> { throw { code: 123 }; }
+// @case transitive 0 0
+function source(): Returns<void, TypeError> { throw new TypeError('x'); }
+function caller(): Returns<void, TypeError> { source(); }
+// @case annotation_does_not_hide_inference 2 0
+function source(): Returns<void, RangeError> { throw new TypeError('x'); }
+function caller(): Returns<void, RangeError> { source(); }
+// @case callback_contract 0 0
+function fn(cb: () => void): Returns<void, Throws<typeof cb>> { cb(); }
+// @case callback_contract_body 0 0
+function fn(cb: () => void): Returns<void, Throws<typeof cb> | Error> { cb(); throw new Error('body'); }
+// @case callback_contract_missing 1 0
+function fn(cb: () => void): Returns<void, never> { cb(); }
+// @case callback_contract_wrong_parameter 1 0
+function fn(a: () => void, b: () => void): Returns<void, Throws<typeof a>> { b(); }
+// @case callback_contract_extra 1 0
+function fn(cb: () => void): Returns<void, Throws<typeof cb>> {}
+// @case callback_missing_annotation 0 1
+function fn(cb: () => void) { cb(); }
+// @case callback_generic_contract 0 0
+function fn<F extends () => void>(cb: F): Returns<void, Throws<F>> { cb(); }

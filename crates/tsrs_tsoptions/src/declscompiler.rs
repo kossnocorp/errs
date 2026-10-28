@@ -1455,6 +1455,10 @@ fn compiler_option_changes(
         _ => return CompilerOptionChanges::ALL,
     };
     let mut changes = CompilerOptionChanges::default();
+    // ErrorScript: root diagnostics must be invalidated when their opt-in configuration changes.
+    if old_options.error_options != new_options.error_options {
+        changes.insert(CompilerOptionChanges::SEMANTIC_DIAGNOSTICS);
+    }
     // Go ForEachCompilerOptionValue walks the struct fields by reflection and looks each one up by name.
     macro_rules! compare_fields {
         ($($field:ident: $json:literal,)*) => {
@@ -1499,6 +1503,13 @@ pub fn compiler_options_affect_semantic_diagnostics(
     old_options: Option<&CompilerOptions>,
     new_options: Option<&CompilerOptions>,
 ) -> bool {
+    // ErrorScript effects depend on dependency bodies, not only the declaration signatures cached by TS.
+    if errs::enabled()
+        || new_options
+            .is_some_and(|options| options.error_options.no_unhandled_root_errors == Some(true))
+    {
+        return true;
+    }
     compiler_option_changes(old_options, new_options)
         .contains(CompilerOptionChanges::SEMANTIC_DIAGNOSTICS)
 }

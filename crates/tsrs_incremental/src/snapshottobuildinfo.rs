@@ -467,6 +467,8 @@ impl ToBuildInfo<'_> {
     // snapshottobuildinfo.go:287
     fn set_compiler_options(&mut self) {
         let options = self.snapshot.options();
+        // ErrorScript: retain mode-dependent diagnostic configuration across incremental invocations.
+        errs::config::write_build_info(&options, &mut self.build_info.options);
         let mut entries: Vec<(&'static str, CompilerOptionsValue)> = Vec::new();
         tsoptions::for_each_compiler_option_value(
             &options,

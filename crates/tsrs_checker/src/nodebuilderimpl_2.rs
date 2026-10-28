@@ -2507,6 +2507,23 @@ impl NodeBuilderImpl {
 
         let mut t = get_non_distributed_type_parameter(t).unwrap();
 
+        // ErrorScript: serialize the native intrinsic, including parameter identity, as type syntax.
+        if let Some(effect) = c.errs_throws.types.get(&t).copied() {
+            let operand = if let Some(parameter) = effect.parameter {
+                let name = parameter.name()?;
+                self.f.new_type_query_node(self.f.new_identifier(name.text()), None)
+            } else {
+                self.type_to_type_node(c, Some(effect.operand))?
+            };
+            let symbol = c.get_global_type_alias_symbol("Throws", 1, false)?;
+            return self.symbol_to_type_node(
+                c,
+                symbol,
+                SymbolFlags::Type,
+                Some(self.f.new_node_list(vec![operand])),
+            );
+        }
+
         // Push type onto typeStack for expansion depth tracking
         let _pop_type_stack = if self.ctx().max_expansion_depth.get().is_some() {
             self.ctx().type_stack.borrow_mut().push(Some(t));

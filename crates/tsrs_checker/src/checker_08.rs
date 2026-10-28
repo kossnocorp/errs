@@ -2597,6 +2597,10 @@ impl Checker {
     // checker.go:16867
     #[inline(never)]
     fn get_type_of_variable_or_parameter_or_property(&mut self, symbol: P<Symbol>) -> P<Type> {
+        // ErrorScript: break recursive catch queries before native initializer-cycle detection/cache writes.
+        if let Some(ty) = self.errs_catch_cycle(symbol) {
+            return ty;
+        }
         let links = self.value_symbol_links.get(symbol);
         if links.resolved_type.get().is_none() {
             let t = self.get_type_of_variable_or_parameter_or_property_worker(symbol);
@@ -2805,6 +2809,10 @@ impl Checker {
                     return Some(declared_type);
                 }
                 return Some(self.error_type);
+            }
+            // ErrorScript: seed ordinary control-flow narrowing with the try block's inferred errors.
+            if let Some(ty) = self.errs_catch_type(declaration) {
+                return Some(ty);
             }
             // If the catch clause is not explicitly annotated, treat it as though it were explicitly
             // annotated with unknown or any, depending on useUnknownInCatchVariables.

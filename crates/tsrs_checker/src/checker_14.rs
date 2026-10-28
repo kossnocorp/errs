@@ -2400,6 +2400,10 @@ impl Checker {
         &mut self,
         parameter: P<Node>,
     ) -> Option<P<Type>> {
+        // ErrorScript: rejection callbacks receive the promise receiver's inferred errors.
+        if let Some(ty) = self.errs_rejection_parameter_type(parameter) {
+            return Some(ty);
+        }
         let fn_ = parameter.parent().unwrap();
         if !self.is_context_sensitive_function_or_object_literal_method(fn_) {
             return None;

@@ -303,6 +303,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "errs"
+version = "0.20.0"
+dependencies = [
+ "errs_config",
+ "rustc-hash",
+ "tsrs_ast",
+ "tsrs_core",
+]
+
+[[package]]
+name = "errs_config"
+version = "0.20.0"
+
+[[package]]
+name = "errs_ls"
+version = "0.20.0"
+dependencies = [
+ "errs",
+ "tsrs_ast",
+ "tsrs_checker",
+ "tsrs_core",
+ "tsrs_lsproto",
+ "tsrs_scanner",
+]
+
+[[package]]
 name = "filetime"
 version = "0.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1044,6 +1070,7 @@ name = "tsrs_checker"
 version = "0.20.0"
 dependencies = [
  "bitflags",
+ "errs",
  "hashbrown",
  "rustc-hash",
  "smallbitvec",
@@ -1067,6 +1094,7 @@ dependencies = [
 name = "tsrs_cli"
 version = "0.20.0"
 dependencies = [
+ "errs",
  "libc",
  "mimalloc-safe",
  "tsrs_api",
@@ -1082,6 +1110,7 @@ dependencies = [
 name = "tsrs_compiler"
 version = "0.20.0"
 dependencies = [
+ "errs",
  "rayon",
  "rustc-hash",
  "tsrs_ast",
@@ -1135,6 +1164,7 @@ name = "tsrs_core"
 version = "0.20.0"
 dependencies = [
  "dragonbox_ecma",
+ "errs_config",
  "hashbrown",
  "icu_normalizer",
  "indexmap",
@@ -1253,6 +1283,7 @@ name = "tsrs_incremental"
 version = "0.20.0"
 dependencies = [
  "bitflags",
+ "errs",
  "rayon",
  "rustc-hash",
  "tsrs_ast",
@@ -1282,6 +1313,8 @@ name = "tsrs_ls"
 version = "0.20.0"
 dependencies = [
  "bitflags",
+ "errs",
+ "errs_ls",
  "indexmap",
  "rustc-hash",
  "tsrs_ast",
@@ -1507,6 +1540,7 @@ dependencies = [
 name = "tsrs_tsoptions"
 version = "0.20.0"
 dependencies = [
+ "errs",
  "rustc-hash",
  "tsrs_ast",
  "tsrs_core",

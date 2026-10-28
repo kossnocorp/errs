@@ -1213,6 +1213,8 @@ impl Checker {
         for (i, &arg) in args.iter().take(arg_count).enumerate() {
             if !is_omitted_expression(arg) {
                 let param_type = self.get_type_at_position(signature, i);
+                // ErrorScript: validate rejection callbacks against their inferred input, including never.
+                let param_type = self.errs_rejection_callback_context(arg, param_type);
                 let arg_type = self.check_expression_with_contextual_type(
                     arg, param_type, None, /*inferenceContext*/
                     check_mode,
@@ -3162,6 +3164,10 @@ impl Checker {
             return;
         }
         let declaration = parameter.value_declaration();
+        // ErrorScript: override the lib's `any` rejection context before caching the parameter type.
+        let contextual_type = declaration
+            .and_then(|node| self.errs_rejection_parameter_type(node))
+            .or(contextual_type);
         let t = match contextual_type {
             Some(t) => t,
             None => match declaration {

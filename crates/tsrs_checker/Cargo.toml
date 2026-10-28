@@ -16,6 +16,8 @@ site-counts = []
 work-census = []
 
 [dependencies]
+# ErrorScript
+errs.workspace = true
 tsrs_core.workspace = true
 tsrs_diagnostics.workspace = true
 tsrs_ast.workspace = true

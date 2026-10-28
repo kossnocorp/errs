@@ -817,6 +817,8 @@ impl Checker {
             None => false,
         };
         let assume_initialized = is_parameter
+            // ErrorScript: typed catch bindings are initialized by entry into their handler.
+            || ::errs::enabled() && ast::is_catch_clause_variable_declaration_or_binding_element(declaration)
             || is_alias
             || (is_outer_variable && !is_never_initialized)
             || is_spread_destructuring_assignment_target

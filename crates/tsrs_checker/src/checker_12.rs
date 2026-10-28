@@ -180,6 +180,10 @@ impl Checker {
                 );
                 return self.error_type;
             }
+            // ErrorScript: retain the value identity in Throws<typeof callback>.
+            if self.errs_is_throws_symbol(symbol) && num_type_arguments == 1 {
+                return self.errs_throws_from_node(type_arguments[0]);
+            }
             // We refrain from associating a local type alias with an instantiation of a top-level type alias
             // because the local alias may end up being referenced in an inferred return type where it is not
             // accessible--which in turn may lead to a large structural expansion of the type when generating
@@ -234,6 +238,14 @@ impl Checker {
         alias: Option<P<TypeAlias>>,
     ) -> P<Type> {
         let t = self.get_declared_type_of_symbol(symbol);
+        // ErrorScript: erase the value-level wrapper; error contracts stay in checker-owned metadata.
+        if self.errs_is_returns_symbol(symbol) && type_arguments.len() == 2 {
+            return type_arguments[0];
+        }
+        // ErrorScript: aliases and native mappers use the same Throws intrinsic as direct syntax.
+        if self.errs_is_throws_symbol(symbol) && type_arguments.len() == 1 {
+            return self.errs_throws_type(type_arguments[0]);
+        }
         if t == self.intrinsic_marker_type
             && let Some(&type_kind) = INTRINSIC_TYPE_KINDS.get(symbol.name())
             && type_arguments.len() == 1

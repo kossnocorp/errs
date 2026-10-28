@@ -10,6 +10,8 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+# ErrorScript
+errs.workspace = true
 tsrs_core.workspace = true
 tsrs_vfs.workspace = true
 tsrs_compiler.workspace = true

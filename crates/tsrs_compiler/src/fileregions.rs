@@ -255,6 +255,10 @@ fn global_library_files(program: &crate::program::Program) -> Vec<P<SourceFile>>
 /// after the pass (`TSRS_FILE_TIMES` walks every tree; the work census walks checker tables). Off
 /// without compressed pointers on unix (`Region::retire_on_free`), whatever the value.
 pub fn leaf_settings_from_env(checkers: usize) -> LeafSettings {
+    // ErrorScript retains whole-program declaration/call attachments until the checker is dropped.
+    if errs::enabled() {
+        return LeafSettings::default();
+    }
     if crate::Checker::census_enabled() || crate::checkerpool::file_times_path().is_some() {
         return LeafSettings::default();
     }

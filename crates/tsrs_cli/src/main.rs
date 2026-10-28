@@ -75,7 +75,9 @@ fn mimalloc_collect(force: bool) {
 fn main() -> std::process::ExitCode {
     #[cfg(all(target_os = "linux", not(any(feature = "system-alloc", miri))))]
     tsrs_core::allocator::init_mimalloc();
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    // ErrorScript: consume the fork's mode flag before upstream CLI/LSP dispatch.
+    errs::take_cli_flag(&mut args);
     #[cfg(not(feature = "system-alloc"))]
     tsrs_core::memsplit::set_heap_hooks(mimalloc_heap_stats, mimalloc_collect);
     // main.go:21: `--lsp` runs the language server (its threads have their own stacks); `--api` runs the

@@ -19,6 +19,8 @@ plain-ptrs = []
 shared-graph = []
 
 [dependencies]
+# ErrorScript: dependency-free options carried through native project snapshots.
+errs_config.workspace = true
 rustc-hash.workspace = true
 hashbrown.workspace = true
 indexmap.workspace = true

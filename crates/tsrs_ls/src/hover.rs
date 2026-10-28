@@ -1,4 +1,5 @@
 use std::cell::{Cell, RefCell};
+use std::fmt::Write as _; // ErrorScript hover attachment.
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use tsrs_ast::{
@@ -117,11 +118,26 @@ impl LanguageService {
             let (hover_range, hover_fidelity) =
                 self.converters.to_lsp_range_for_feature(&range_file, text_range, Feature::Hover);
 
-            let content = if content_format == lsproto::MarkupKind::MARKDOWN {
+            let mut content = if content_format == lsproto::MarkupKind::MARKDOWN {
                 format_quick_info(&quick_info) + &documentation
             } else {
                 quick_info + &documentation
             };
+
+            // ErrorScript: the checker owns inference and native type rendering; LSP only formats the attachment.
+            if errs::enabled()
+                && let Some(effect) = c.error_effect_at(range_node)
+            {
+                if content_format == lsproto::MarkupKind::MARKDOWN {
+                    let effect = errs_ls::render_effect(&mut c, &effect, &|file, range| {
+                        self.converters.to_lsp_location_for_feature(&file, range, Feature::Hover).0
+                    });
+                    write!(content, "\n\n**ErrorScript**\n\n{effect}").unwrap();
+                } else {
+                    let effect = errs::render_effect(&mut *c, &effect);
+                    write!(content, "\n\nErrorScript\n{effect}").unwrap();
+                }
+            }
 
             let mut hover = lsproto::Hover {
                 contents: lsproto::MarkupContentOrStringOrMarkedStringWithLanguageOrMarkedStrings {

@@ -1688,6 +1688,14 @@ fn parse_config(
     };
     errors.extend(err);
     if let Some(options) = &mut own_config.options
+        && errs::enabled()
+    {
+        // ErrorScript: parse before native extends merging, including cached base configurations.
+        let (error_options, diagnostics) = crate::errs::parse(&own_config.raw);
+        options.error_options = error_options;
+        errors.extend(diagnostics);
+    }
+    if let Some(options) = &mut own_config.options
         && options.paths.is_some()
     {
         // If we end up needing to resolve relative paths from 'paths' relative to
@@ -1925,6 +1933,10 @@ fn parse_json_config_file_content_worker(
     );
     if let Some(options) = &mut parsed_config.options {
         merge_compiler_options(options, existing_options, existing_options_raw);
+        // ErrorScript: include/infer JS through the native config and module loader. checkJs remains user-controlled.
+        if errs::enabled() {
+            options.allow_js = Tristate::True;
+        }
     }
     handle_option_config_dir_template_substitution(
         parsed_config.options.as_mut(),

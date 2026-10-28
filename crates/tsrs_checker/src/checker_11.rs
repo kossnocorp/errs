@@ -1553,6 +1553,10 @@ impl Checker {
         m: P<TypeMapper>,
         alias: Option<P<TypeAlias>>,
     ) -> P<Type> {
+        // ErrorScript: instantiate the operand of a deferred native Throws<F> type.
+        if let Some(result) = self.errs_instantiate_throws(t, m) {
+            return result;
+        }
         let flags = t.flags();
         if flags.intersects(TypeFlags::TypeParameter) {
             return self.get_mapped_type(t, m);

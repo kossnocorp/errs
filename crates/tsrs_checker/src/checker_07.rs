@@ -1956,13 +1956,23 @@ impl Checker {
             || self.compiler_options.no_unused_parameters.is_true()
             || suggestions;
         self.check_source_file(ctx, source_file, check_unused);
+        // ErrorScript: infer after ordinary checking, with optional root-execution diagnostics.
+        if ::errs::enabled() && !self.was_canceled {
+            self.infer_error_effects();
+        }
         if self.was_canceled {
             return Vec::new();
         }
         if suggestions {
             self.suggestion_diagnostics.get_diagnostics_for_file(source_file)
         } else {
-            self.diagnostics.get_diagnostics_for_file(source_file)
+            let mut diagnostics = self.diagnostics.get_diagnostics_for_file(source_file);
+            // ErrorScript: query-local diagnostics avoid duplicates when the editor requests them repeatedly.
+            if ::errs::enabled() {
+                diagnostics.extend(self.unhandled_root_error_diagnostics(source_file));
+                diagnostics.extend(self.returns_contract_diagnostics(source_file));
+            }
+            diagnostics
         }
     }
 

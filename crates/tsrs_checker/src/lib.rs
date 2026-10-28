@@ -158,6 +158,8 @@ pub mod utilities;
 pub use utilities::new_diagnostic_for_node;
 pub(crate) use utilities::*;
 mod exports;
+// ErrorScript: narrow native-type adapter; the effect engine lives in the errs crate.
+mod errs;
 mod jsdoc;
 mod jsx;
 pub mod printer;

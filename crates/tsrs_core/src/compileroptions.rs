@@ -15,6 +15,8 @@ pub struct PluginImport {
 // Go `[]string` options are `Option<Vec<String>>` because the Go code distinguishes nil (unset) from empty.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CompilerOptions {
+    // ErrorScript: parsed from the top-level errorOptions object, not compilerOptions.
+    pub error_options: errs_config::ErrorOptions,
     /// API only (`gojson`): `moduleDetection` and `newLine` numbers decoded from the wire with no Rust variant (Go
     /// keeps any int32), by JSON name. The typed field stays at its default (which behaves like Go's fallback) and
     /// the value is echoed back. (`target`, `module`, `jsx` and `moduleResolution` hold any int32 directly.)

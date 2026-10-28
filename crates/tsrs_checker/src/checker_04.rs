@@ -956,7 +956,9 @@ impl Checker {
             && type_node.kind() == Kind::IntrinsicKeyword
         {
             let name = node.name().unwrap().text();
-            if !(type_parameters.is_empty() && name == "BuiltinIteratorReturn"
+            if !(self.errs_is_returns_declaration(node)
+                || self.errs_is_throws_declaration(node)
+                || type_parameters.is_empty() && name == "BuiltinIteratorReturn"
                 || type_parameters.len() == 1
                     && INTRINSIC_TYPE_KINDS
                         .get(name)

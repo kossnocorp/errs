@@ -2673,6 +2673,10 @@ impl Program {
     ) -> Vec<P<Diagnostic>> {
         let compiler_options = self.options();
         if self.skip_type_checking(source_file, false) {
+            // ErrorScript still infers unchecked JS/noCheck bodies through native type queries.
+            if errs::enabled() && !source_file.is_declaration_file() {
+                file_checker.infer_error_effects();
+            }
             return Vec::new();
         }
         let mut previous_globals = Vec::new();

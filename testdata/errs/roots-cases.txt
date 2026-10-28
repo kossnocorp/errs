@@ -1,0 +1,165 @@
+// @case sync 1
+fail();
+// @case callback_pure 0
+export function fn(cb: () => void) { cb(); }
+fn(() => {});
+// @case callback_throws 1
+export function fn(cb: () => void) { cb(); }
+fn(() => { throw new Error('Nope!'); });
+// @case callback_body 1
+function fn(cb: () => void) { cb(); throw new RangeError('body'); }
+fn(() => {});
+// @case callback_ignored 0
+function fn(cb: () => void) {}
+fn(() => { throw new Error('not executed'); });
+// @case callback_caught 0
+function fn(cb: () => void) { cb(); }
+try { fn(() => { throw new Error('handled'); }); } catch {}
+// @case callback_forwarded 1
+function fn(cb: () => void) { cb(); }
+function forward(cb: () => void) { fn(cb); }
+forward(() => {});
+forward(fail);
+// @case callback_internal_catch 0
+function fn(cb: () => void) { try { cb(); } catch {} }
+fn(fail);
+// @case callback_async 1
+async function fn(cb: () => Promise<void>) { await cb(); }
+fn(async () => {});
+fn(rejected);
+// @case callback_async_caught 0
+async function fn(cb: () => Promise<void>) { await cb(); }
+fn(rejected).catch(() => {});
+// @case callback_external 1
+function fn(cb: () => void) { cb(); }
+fn(external);
+// @case caught 0
+try { fail(); } catch {}
+// @case pure 0
+pure(); pureAsync();
+// @case unknown 3
+external(); externalPromise();
+// @case deferred 0
+function unused() { fail(); }
+const unusedArrow = () => rejected();
+// @case rejected 1
+rejected();
+// @case rejection_inside_try 1
+try { rejected(); } catch {}
+// @case promise_catch 0
+rejected().catch(() => {});
+// @case awaited 1
+await rejected();
+// @case awaited_caught 0
+try { await rejected(); } catch {}
+// @case rethrow 1
+try { fail(); } catch (error) { throw error; }
+// @case pure_try_handler 0
+try { pure(); } catch { fail(); }
+// @case finally_throw 1
+try { fail(); } catch {} finally { fail(); }
+// @case catch_throw 1
+rejected().catch(() => { fail(); });
+// @case catch_reject 1
+rejected().catch(() => rejected());
+// @case catch_throw_handled 0
+rejected().catch(() => { fail(); }).catch(() => {});
+// @case then_passthrough 1
+rejected().then(() => {});
+// @case then_rejection_handler 0
+rejected().then(undefined, () => {});
+// @case missing_handler 1
+rejected().catch(undefined);
+// @case pure_catch_handler 0
+pureAsync().catch(() => { fail(); });
+// @case fulfillment_throws 1
+pureAsync().then(() => { fail(); });
+// @case fulfillment_rejects 1
+pureAsync().then(() => rejected());
+// @case finally_passthrough 1
+rejected().finally(() => {});
+// @case finally_throws 1
+pureAsync().finally(() => { fail(); });
+// @case later_catch 0
+const promise = rejected();
+promise.catch(() => {});
+// @case later_await 0
+const promise = rejected();
+try { await promise; } catch {}
+// @case conditional_handler 2
+const promise = rejected();
+if (Math.random()) promise.catch(() => {});
+// @case both_branches_handle 1
+const promise = rejected();
+if (Math.random()) promise.catch(() => {});
+else promise.catch(() => {});
+// @case immutable_alias 0
+const promise = rejected();
+const alias = promise;
+alias.catch(() => {});
+// @case independent_chain 1
+const promise = rejected();
+promise.catch(() => {});
+promise.then(() => {});
+// @case static_reject 1
+Promise.reject(new Error('error'));
+// @case static_resolve 0
+Promise.resolve(123);
+// @case static_adopt 1
+Promise.resolve(rejected());
+// @case static_adopt_caught 0
+Promise.resolve(rejected()).catch(() => {});
+// @case custom_catch 1
+const fake = { catch() { fail(); } };
+fake.catch();
+// @case explicit_unknown 1
+throwAny(undefined);
+// @case explicit_unknown_async 1
+rejectAny(undefined);
+// @case wrapped_catch 0
+function wrapped() { return rejected().catch(() => {}); }
+wrapped();
+// @case wrapped_throw 1
+function wrapped() { return rejected().catch(() => { fail(); }); }
+wrapped();
+// @case unreachable 1
+throw new Error('stop');
+fail();
+// @case console_in_handler 2
+try { fail(); } catch (error) { console.error(error); fail(); }
+// @case unknown_caught 0
+try { external(); } catch {}
+// @case unknown_promise_caught 0
+try { await externalPromise(); } catch {}
+// @case unknown_promise_sync_escape 1
+externalPromise().catch(() => {});
+// @case unknown_promise_handler 1
+rejected().catch(error => { console.error(error); });
+// @case unknown_promise_handler_caught 0
+rejected().catch(error => { console.error(error); }).catch(() => {});
+// @case unknown_promise_value 1
+declare const promise: Promise<void>;
+await promise;
+// @case unknown_getter 1
+declare const value: { get error(): string };
+value.error;
+// @case invalid_property_not_a_promise 0
+try { fail(); } catch (error) {
+    // @ts-expect-error Type-checking failures do not invent promise effects.
+    error.notAProperty;
+}
+// @case promise_property_name 0
+const object = { promise: Promise.resolve(123) };
+// @case iife 1
+(() => { fail(); })();
+// @case static_block 1
+class Example { static { fail(); } }
+// @case static_field 1
+class Example { static value = fail(); }
+// @case deferred_instance 0
+class Example { value = fail(); method() { fail(); } }
+// @case unreachable_branch 0
+if (false) fail();
+// @case catch_normal_path 1
+try { pure(); } catch { throw new Error('unreachable'); }
+fail();

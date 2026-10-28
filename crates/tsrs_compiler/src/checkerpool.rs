@@ -876,7 +876,11 @@ impl CheckerPoolImpl {
                 }
                 crate::program::worker_pool().broadcast(|_| tsrs_core::ptr::release_own_arena());
             }
-            let recycle = program.checker_recycling && !self.single_threaded && max_memory() > 0;
+            // ErrorScript: retain native effect attachments for the entire program/checker lifetime.
+            let recycle = !errs::enabled()
+                && program.checker_recycling
+                && !self.single_threaded
+                && max_memory() > 0;
             let shared = crate::sharedgraph::enabled() && !program.single_threaded();
             let create_and_assign = || {
                 let create_start =

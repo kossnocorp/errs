@@ -80,8 +80,12 @@ pub fn parse_command_line(
         &COMMAND_LINE_COMPILER_OPTIONS_MAP,
         host.get_current_directory(),
     );
-    let compiler_options =
+    let mut compiler_options =
         convert_map_to_options(&options, CompilerOptionsParser(CompilerOptions::default())).0;
+    // ErrorScript: file-list compilations use the same JS policy as configured projects.
+    if errs::enabled() {
+        compiler_options.allow_js = tsrs_core::Tristate::True;
+    }
     let mut result = new_parsed_command_line(
         P::new(compiler_options),
         parser.file_names,

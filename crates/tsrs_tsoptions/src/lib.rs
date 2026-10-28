@@ -11,6 +11,8 @@ mod declstypeacquisition;
 pub mod diagnostics;
 pub mod enummaps;
 pub mod errors;
+// ErrorScript: native tsconfig-value adapter.
+mod errs;
 pub mod namemap;
 pub mod parsedbuildcommandline;
 pub mod parsedcommandline;

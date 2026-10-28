@@ -1095,6 +1095,10 @@ static NEXT_CHECKER_ID: AtomicU32 = AtomicU32::new(0);
 pub type SymbolTableID = u64;
 
 pub struct Checker {
+    // ErrorScript: checker/snapshot-local native type attachments, never copied into shared ASTs.
+    pub(crate) errs_inference: Option<::errs::Inference<P<Type>>>,
+    pub(crate) errs_catches: crate::errs::catch::CatchTypes,
+    pub(crate) errs_throws: crate::errs::throws::ThrowsTypes,
     pub id: u32,
     pub(crate) program: &'static dyn Program,
     pub(crate) compiler_options: P<CompilerOptions>,
@@ -1628,6 +1632,10 @@ pub fn new_checker(program: &'static dyn Program) -> Box<Checker> {
 
     let files = program.source_files();
     let mut c = Box::new(Checker {
+        // ErrorScript
+        errs_inference: None,
+        errs_catches: crate::errs::catch::CatchTypes::default(),
+        errs_throws: crate::errs::throws::ThrowsTypes::default(),
         id: NEXT_CHECKER_ID.fetch_add(1, Ordering::Relaxed) + 1,
         program,
         compiler_options,
@@ -2174,6 +2182,10 @@ impl Checker {
     pub fn fork(base: &'static Checker) -> Box<Checker> {
         base.assert_freezable();
         let mut c = Box::new(Checker {
+            // ErrorScript: forked checkers must infer using their own type identities.
+            errs_inference: None,
+            errs_catches: crate::errs::catch::CatchTypes::default(),
+            errs_throws: crate::errs::throws::ThrowsTypes::default(),
             // Relaxed: the counter only hands out distinct ids (as in new_checker).
             id: NEXT_CHECKER_ID.fetch_add(1, Ordering::Relaxed) + 1,
             program: base.program,
