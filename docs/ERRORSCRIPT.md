@@ -41,6 +41,25 @@ Native standard-library `Promise.then`, `catch`, `finally`, `resolve`, and `reje
 
 This is the initial inference layer, not complete JavaScript runtime-effect analysis. Higher-order callable arguments to callbacks, Promise executors/combinators, iterator consumption, precise accessor/proxy/coercion effects, implicit constructors, decorators, dynamic dispatch, and runtime/declaration pairing need further work. Known accessor reads retain an unknown synchronous effect. Branches, loops, and handler reachability in parameter-dependent summaries are conservative. Generic overload implementations with type parameters distinct from the selected overload are not yet fully substituted. Recursive generic growth is bounded to 32 native types per channel and 128 propagation rounds, with an unknown fallback instead of silently dropping effects. Inferred effects are not emitted into `.d.ts` or `.tsbuildinfo`, and impose no general function-effect assignability constraints.
 
+## Built-in return contracts
+
+The bundled libraries annotate `Math.random`, `Date.now`, `Object.is`, and
+`Number.isFinite`, `isInteger`, `isNaN`, and `isSafeInteger` with `Returns<..., never>`.
+All `Console` methods in the DOM and WebWorker libraries also carry
+`Returns<void, never>`, including `log`, `error`, `warn`, `info`, and `debug`.
+Console contracts model ordinary host logging; custom formatting hooks, replaced
+implementations, and host failures are outside that assumption. Evaluating call
+arguments still contributes its own errors.
+
+These are declaration contracts, so direct calls, aliases, `Throws`, and inferred
+callers use the existing signature machinery. Bodyless declarations with an explicit
+`never` error contract have no effects in any channel; available implementations
+are still inferred and checked. Unannotated APIs retain unknown
+effects. External declarations such as `@types/node` need their own annotations.
+`tools/gen-libs/errs.mjs` reapplies the contracts and intrinsic declarations when
+regenerating the bundled libraries. `testdata/errs/builtins.ts` covers both browser
+and worker libraries, with ErrorScript enabled and disabled.
+
 ## Inferred catch types
 
 In ErrorScript mode, an unannotated catch binding receives the union of errors inferred to escape its `try` body. Ordinary TypeScript control-flow analysis then handles `instanceof`, `typeof`, discriminants, assignments, and destructuring. Hovers and property diagnostics use the same native type:

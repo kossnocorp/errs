@@ -104,3 +104,7 @@ generic(new RangeError('call'));
 direct();
 overload('call');
 rejection();
+export function builtinRandom() { return Math.random(); }
+export function builtinLogging() { console.log('message'); console.error('message'); }
+Math.random();
+console.log('message');

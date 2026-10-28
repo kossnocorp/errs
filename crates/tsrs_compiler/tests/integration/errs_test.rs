@@ -122,6 +122,8 @@ fn native_error_effects() {
                 ("fieldCaller", "throws: TypeError"),
                 ("getterCaller", "throws: unknown"),
                 ("method", "throws: RangeError"),
+                ("builtinRandom", "throws: never"),
+                ("builtinLogging", "throws: never"),
             ];
             let actual: Vec<_> = expected
                 .iter()
@@ -144,13 +146,20 @@ fn native_error_effects() {
                     "throws: RangeError",
                     "throws: TypeError",
                     "throws: TypeError",
-                    "throws: never\nrejects: RangeError"
+                    "throws: never\nrejects: RangeError",
+                    "throws: never",
+                    "throws: never"
                 ]
             );
             // Native signature queries expose the same metadata, without changing their ordinary return types.
             let signature = checker.get_resolved_signature_exported(calls[0]);
             let effect = checker.error_effect_of_signature(signature);
             assert_eq!(errs::render_effect(&mut *checker, &effect), "throws: RangeError");
+            for &call in &calls[4..] {
+                let signature = checker.get_resolved_signature_exported(call);
+                let effect = checker.error_effect_of_signature(signature);
+                assert_eq!(errs::render_effect(&mut *checker, &effect), "throws: never");
+            }
         })
         .unwrap()
         .join()

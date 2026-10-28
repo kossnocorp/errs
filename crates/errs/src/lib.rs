@@ -115,6 +115,7 @@ pub trait Host {
     fn type_of(&mut self, node: P<Node>) -> ErrorSet<Self::Type>;
     fn call_target(&mut self, call: P<Node>) -> Option<P<Node>>;
     fn declaration_target(&mut self, declaration: P<Node>) -> P<Node>;
+    fn is_non_throwing_declaration(&mut self, declaration: P<Node>) -> bool;
     fn intrinsic_call(&mut self, call: P<Node>) -> Option<Effect<Self::Type>>;
     fn instantiate(&mut self, ty: Self::Type, call: P<Node>) -> ErrorSet<Self::Type>;
     fn catch_binding(&mut self, expression: P<Node>) -> Option<P<Node>>;

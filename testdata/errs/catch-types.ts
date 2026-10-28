@@ -123,3 +123,5 @@ try { invokeCallback(() => { throw new Error('callback'); }); } catch (error) {
 try { invokeCallback(() => {}); } catch (error) {
   const inferred: never = error;
 }
+// Non-throwing built-ins contribute no unknown error alternative to catch bindings.
+try { Math.random(); console.log('safe'); } catch (error) { const value: never = error; }

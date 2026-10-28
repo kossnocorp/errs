@@ -86,10 +86,10 @@ promise.catch(() => {});
 // @case later_await 0
 const promise = rejected();
 try { await promise; } catch {}
-// @case conditional_handler 2
+// @case conditional_handler 1
 const promise = rejected();
 if (Math.random()) promise.catch(() => {});
-// @case both_branches_handle 1
+// @case both_branches_handle 0
 const promise = rejected();
 if (Math.random()) promise.catch(() => {});
 else promise.catch(() => {});
@@ -125,7 +125,7 @@ wrapped();
 // @case unreachable 1
 throw new Error('stop');
 fail();
-// @case console_in_handler 2
+// @case console_in_handler 1
 try { fail(); } catch (error) { console.error(error); fail(); }
 // @case unknown_caught 0
 try { external(); } catch {}
@@ -133,9 +133,9 @@ try { external(); } catch {}
 try { await externalPromise(); } catch {}
 // @case unknown_promise_sync_escape 1
 externalPromise().catch(() => {});
-// @case unknown_promise_handler 1
+// @case console_promise_handler 0
 rejected().catch(error => { console.error(error); });
-// @case unknown_promise_handler_caught 0
+// @case console_promise_handler_caught 0
 rejected().catch(error => { console.error(error); }).catch(() => {});
 // @case unknown_promise_value 1
 declare const promise: Promise<void>;

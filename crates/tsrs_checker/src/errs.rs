@@ -206,6 +206,15 @@ impl Host for Checker {
             .unwrap_or(declaration)
     }
 
+    fn is_non_throwing_declaration(&mut self, declaration: P<Node>) -> bool {
+        // Trust an explicit never contract only when there is no implementation to infer/check.
+        // Never contracts cover every channel, so no sync/rejection/iteration split is needed.
+        self.declaration_target(declaration).body().is_none()
+            && self
+                .errs_function_contract(declaration)
+                .is_some_and(|errors| errors.flags().intersects(TypeFlags::Never))
+    }
+
     fn call_target(&mut self, call: P<Node>) -> Option<P<Node>> {
         let signature = self.get_resolved_signature_exported(call);
         signature.declaration().map(|n| self.declaration_target(n))

@@ -222,13 +222,13 @@ interface NumberConstructor {
      * number. Only finite values of the type number, result in true.
      * @param number A numeric value.
      */
-    isFinite(number: unknown): boolean;
+    isFinite(number: unknown): Returns<boolean, never>;
 
     /**
      * Returns true if the value passed is an integer, false otherwise.
      * @param number A numeric value.
      */
-    isInteger(number: unknown): boolean;
+    isInteger(number: unknown): Returns<boolean, never>;
 
     /**
      * Returns a Boolean value that indicates whether a value is the reserved value NaN (not a
@@ -236,13 +236,13 @@ interface NumberConstructor {
      * to a number. Only values of the type number, that are also NaN, result in true.
      * @param number A numeric value.
      */
-    isNaN(number: unknown): boolean;
+    isNaN(number: unknown): Returns<boolean, never>;
 
     /**
      * Returns true if the value passed is a safe integer.
      * @param number A numeric value.
      */
-    isSafeInteger(number: unknown): boolean;
+    isSafeInteger(number: unknown): Returns<boolean, never>;
 
     /**
      * The value of the largest integer n such that n and n + 1 are both exactly representable as
@@ -327,7 +327,7 @@ interface ObjectConstructor {
      * @param value1 The first value.
      * @param value2 The second value.
      */
-    is(value1: any, value2: any): boolean;
+    is(value1: any, value2: any): Returns<boolean, never>;
 
     /**
      * Sets the prototype of a specified object o to object proto or null. Returns the object o.

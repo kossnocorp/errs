@@ -107,3 +107,17 @@ function fn(cb: () => void): Returns<void, Throws<typeof cb>> {}
 function fn(cb: () => void) { cb(); }
 // @case callback_generic_contract 0 0
 function fn<F extends () => void>(cb: F): Returns<void, Throws<F>> { cb(); }
+// @case builtin_false_claim 1 0
+function random(): Returns<number, Error> { return Math.random(); }
+// @case builtin_callback 0 0
+function fn(cb: () => void): Returns<void, Throws<typeof cb>> { cb(); }
+function log(): Returns<void, never> { fn(console.log); }
+// @case declared_never 0 0
+declare function external(): Returns<number, never>;
+function caller(): Returns<number, never> { return external(); }
+// @case declared_never_promise 0 0
+declare function external(): Returns<Promise<number>, never>;
+async function caller(): Returns<Promise<number>, never> { return await external(); }
+// @case never_does_not_hide_implementation 2 0
+function source(): Returns<void, never> { throw 'implementation'; }
+function caller(): Returns<void, never> { source(); }

@@ -59,7 +59,13 @@ impl<T: Copy + Eq> Call<T> {
         Self {
             node,
             target,
-            intrinsic: if callback { None } else { host.intrinsic_call(node) },
+            intrinsic: if target.is_some_and(|target| host.is_non_throwing_declaration(target)) {
+                Some(Effect::default())
+            } else if callback {
+                None
+            } else {
+                host.intrinsic_call(node)
+            },
             promise,
             parameter,
             arguments,
@@ -364,6 +370,9 @@ impl<T: Copy + Eq> Inference<T> {
             let target = host.declaration_target(node);
             if target != node {
                 return self.functions.get(&target).cloned();
+            }
+            if host.is_non_throwing_declaration(node) {
+                return Some(Effect::default());
             }
         }
         if let Some(effect) = self.calls.get(&node).or_else(|| self.functions.get(&node)) {

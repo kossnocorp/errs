@@ -37,6 +37,7 @@ pub struct Function<T> {
 }
 
 pub fn function<H: Host>(host: &mut H, node: P<Node>) -> Function<H::Type> {
+    let non_throwing = node.body().is_none() && host.is_non_throwing_declaration(node);
     let mut parts = Vec::new();
     for &parameter in node.parameters() {
         if let Some(initializer) = parameter.initializer() {
@@ -66,7 +67,7 @@ pub fn function<H: Host>(host: &mut H, node: P<Node>) -> Function<H::Type> {
                 Ir::DiscardValue(Box::new(body_ir))
             }))
         });
-    } else {
+    } else if !non_throwing {
         parts.push(Ir::Unknown(node));
     }
     Function {
@@ -74,7 +75,9 @@ pub fn function<H: Host>(host: &mut H, node: P<Node>) -> Function<H::Type> {
         body: Ir::Sequence(parts),
         is_async: ast::get_combined_modifier_flags(node).intersects(ModifierFlags::Async),
         is_generator: ast::get_function_flags(Some(node)).intersects(ast::FunctionFlags::Generator),
-        returns_promise: node.body().is_none() && host.signature_returns_promise(node),
+        returns_promise: node.body().is_none()
+            && !non_throwing
+            && host.signature_returns_promise(node),
     }
 }
 

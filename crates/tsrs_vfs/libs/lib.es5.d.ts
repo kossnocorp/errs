@@ -741,7 +741,7 @@ interface Math {
      */
     pow(x: number, y: number): number;
     /** Returns a pseudorandom number between 0 and 1. */
-    random(): number;
+    random(): Returns<number, never>;
     /**
      * Returns a supplied numeric expression rounded to the nearest integer.
      * @param x The value to be rounded to the nearest integer.
@@ -953,7 +953,7 @@ interface DateConstructor {
      */
     UTC(year: number, monthIndex: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): number;
     /** Returns the number of milliseconds elapsed since midnight, January 1, 1970 Universal Coordinated Time (UTC). */
-    now(): number;
+    now(): Returns<number, never>;
 }
 
 declare var Date: DateConstructor;

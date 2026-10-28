@@ -65,6 +65,33 @@ fn errorscript_native_catch_narrowing() {
 }
 
 #[test]
+fn errorscript_builtin_contracts() {
+    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../target/errs-builtins-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("builtins.ts"), include_str!("../../../../testdata/errs/builtins.ts"))
+        .unwrap();
+    for lib in ["dom", "webworker"] {
+        std::fs::write(
+            dir.join("tsconfig.json"),
+            format!(r#"{{"compilerOptions":{{"noEmit":true,"strict":true,"target":"es2022","lib":["es2022","{lib}"]}},"errorOptions":{{"noUnhandledRootErrors":true}},"files":["builtins.ts"]}}"#),
+        ).unwrap();
+        for enabled in [true, false] {
+            let mut command = Command::new(env!("CARGO_BIN_EXE_tsrs"));
+            if enabled {
+                command.arg("--errorscript");
+            }
+            let output =
+                command.args(["-p", ".", "--pretty", "false"]).current_dir(&dir).output().unwrap();
+            let text = String::from_utf8(output.stdout).unwrap()
+                + &String::from_utf8(output.stderr).unwrap();
+            assert!(output.status.success(), "{lib}, errorscript={enabled}: {text}");
+        }
+    }
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn errorscript_returns_contracts() {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join(format!("../../target/errs-returns-{}", std::process::id()));
