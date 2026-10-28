@@ -5,6 +5,7 @@ pub mod config;
 mod infer;
 mod lower;
 pub use errs_config::ErrorOptions;
+mod promises;
 mod roots;
 pub use infer::Inference;
 pub use roots::RootError;

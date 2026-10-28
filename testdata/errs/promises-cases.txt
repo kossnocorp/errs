@@ -1,0 +1,98 @@
+// @case detached_callback 1
+rejected().catch(() => { rejected(); });
+// @case outer_catch_cannot_handle_detached 1
+rejected().catch(() => { rejected(); }).catch(() => {});
+// @case returned_callback 1
+rejected().catch(() => rejected());
+// @case returned_callback_handled 0
+rejected().catch(() => { return rejected(); }).catch(() => {});
+// @case awaited_callback_handled 0
+rejected().catch(async () => { await rejected(); }).catch(() => {});
+// @case async_detached_callback 1
+rejected().catch(async () => { rejected(); }).catch(() => {});
+// @case sync_callback 1
+rejected().catch(() => { fail(); });
+// @case sync_callback_handled 0
+rejected().catch(() => { fail(); }).catch(() => {});
+// @case local_handling 0
+rejected().catch(() => { rejected().catch(() => {}); });
+// @case named_callback 1
+function handler() { rejected(); }
+rejected().catch(handler);
+// @case unused_function 1
+function unused() { rejected(); }
+// @case wrapper 1
+function wrapper() { rejected(); }
+wrapper();
+// @case returned_function 0
+function wrapper() { return rejected(); }
+wrapper().catch(() => {});
+// @case arrow_return 0
+const callback = () => rejected();
+// @case awaited_function 0
+async function wrapper() { await rejected(); }
+// @case sync_throw 0
+fail();
+// @case awaited_root 0
+await rejected();
+// @case bare_root 1
+rejected();
+// @case never_rejects 0
+pureAsync();
+function unused() { pureAsync(); }
+// @case unknown_promise 1
+externalPromise();
+// @case unknown_sync 0
+external();
+// @case try_does_not_handle_detached 1
+function wrapper() { try { rejected(); } catch {} }
+// @case awaited_try 0
+async function wrapper() { try { await rejected(); } catch {} }
+// @case later_alias 0
+function wrapper() { const p = rejected(); const alias = p; alias.catch(() => {}); }
+// @case conditional_handler 1
+function wrapper() { const p = rejected(); if (flag) p.catch(() => {}); }
+// @case both_branches_handle 0
+function wrapper() { const p = rejected(); if (flag) p.catch(() => {}); else p.catch(() => {}); }
+// @case return_transfers_alias 0
+function wrapper() { const p = rejected(); return p; }
+// @case return_before_handler 1
+function wrapper() { const p = rejected(); if (flag) return; p.catch(() => {}); }
+// @case return_or_handle 0
+function wrapper() { const p = rejected(); if (flag) return p; p.catch(() => {}); }
+// @case branch_return_does_not_handle_other_path 1
+function wrapper() { const p = rejected(); if (flag) return p; }
+// @case unrelated_return 1
+function wrapper() { rejected(); return pureAsync(); }
+// @case unreachable 0
+function wrapper() { return; rejected(); }
+if (false) rejected();
+// @case finally_preserves_return 0
+function wrapper() { try { return rejected(); } finally { console.log('done'); } }
+// @case finally_overrides_return 1
+function wrapper() { try { return rejected(); } finally { return; } }
+// @case finally_handles_all_paths 0
+function wrapper() { const p = rejected(); try { if (flag) return; } finally { p.catch(() => {}); } }
+// @case finally_detached 1
+pureAsync().finally(() => { rejected(); });
+// @case finally_returned_handled 0
+pureAsync().finally(() => rejected()).catch(() => {});
+// @case promise_resolve_adopts 0
+Promise.resolve(rejected()).catch(() => {});
+// @case then_does_not_handle 1
+rejected().then(() => {});
+// @case static_reject 1
+Promise.reject(new Error('error'));
+// @case void_does_not_handle 1
+void rejected();
+// @case constructors_and_methods 2
+class Example { constructor() { rejected(); } method() { rejected(); } }
+// @case initializers 2
+class Example { field = rejected(); static field = rejected(); }
+// @case callback_parameter 1
+function invoke(cb: () => Promise<void>) { cb(); }
+// @case callback_parameter_returned 0
+function invoke(cb: () => Promise<void>) { return cb(); }
+// @case pure_contract 0
+declare function safe(): Returns<Promise<void>, never>;
+safe();

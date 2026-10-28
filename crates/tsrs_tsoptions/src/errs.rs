@@ -22,6 +22,7 @@ pub fn parse(raw: &CompilerOptionsValue) -> (ErrorOptions, Vec<P<Diagnostic>>) {
     for (name, value) in object {
         let option = match name.as_str() {
             "noUnhandledRootErrors" => Some(&mut options.no_unhandled_root_errors),
+            "noUnhandledPromises" => Some(&mut options.no_unhandled_promises),
             "noImplicitReturns" => Some(&mut options.no_implicit_returns),
             _ => None,
         };

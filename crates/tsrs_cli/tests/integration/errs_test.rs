@@ -211,6 +211,134 @@ fn errorscript_returns_contracts() {
 }
 
 #[test]
+fn errorscript_unhandled_promises() {
+    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("../../target/errs-promises-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("functions.ts"),
+        include_str!("../../../../testdata/errs/roots-functions.ts"),
+    )
+    .unwrap();
+    let cases: Vec<_> = include_str!("../../../../testdata/errs/promises-cases.txt")
+        .split("// @case ").skip(1).map(|case| {
+            let (header, body) = case.split_once('\n').unwrap();
+            let (name, count) = header.split_once(' ').unwrap();
+            let file = format!("{name}.ts");
+            std::fs::write(dir.join(&file), format!("import {{ fail, rejected, pureAsync, external, externalPromise }} from './functions'; declare const flag: boolean;\n{body}")).unwrap();
+            (file, count.parse::<usize>().unwrap())
+        }).collect();
+    std::fs::write(dir.join("base.json"), r#"{"compilerOptions":{"noEmit":true,"strict":true,"target":"es2022","module":"esnext","moduleResolution":"bundler"},"errorOptions":{"noUnhandledPromises":true}}"#).unwrap();
+    let run = |config: &str, enabled: bool| {
+        std::fs::write(dir.join("tsconfig.json"), config).unwrap();
+        let mut command = Command::new(env!("CARGO_BIN_EXE_tsrs"));
+        if enabled {
+            command.arg("--errorscript");
+        }
+        let output =
+            command.args(["-p", ".", "--pretty", "false"]).current_dir(&dir).output().unwrap();
+        let text =
+            String::from_utf8(output.stdout).unwrap() + &String::from_utf8(output.stderr).unwrap();
+        (output.status.success(), text)
+    };
+    let (success, text) = run(r#"{"extends":"./base.json"}"#, true);
+    assert!(!success, "{text}");
+    assert!(
+        text.lines().filter(|line| line.contains("error TS")).all(|line| line.contains("TS98004")),
+        "{text}"
+    );
+    for (file, expected) in cases {
+        let actual = text
+            .lines()
+            .filter(|line| line.starts_with(&format!("{file}(")) && line.contains("TS98004"))
+            .count();
+        assert_eq!(actual, expected, "{file}: {text}");
+    }
+    // The detached inner call is diagnosed at its own location, independently of root checking.
+    std::fs::write(dir.join("example.ts"), "async function throwAsync() { throw new Error('error'); }\nthrowAsync().catch(() => {\n  throwAsync();\n});\n").unwrap();
+    for roots in [true, false] {
+        for promises in [true, false] {
+            let config = format!(
+                r#"{{"extends":"./base.json","files":["example.ts"],"errorOptions":{{"noUnhandledRootErrors":{roots},"noUnhandledPromises":{promises}}}}}"#
+            );
+            let (success, text) = run(&config, true);
+            assert_eq!(success, !promises, "{text}");
+            assert_eq!(
+                text.lines().filter(|line| line.contains("error TS")).count(),
+                usize::from(promises),
+                "{text}"
+            );
+            if promises {
+                assert!(
+                    text.contains(
+                        "example.ts(3,3): error TS98004: Unhandled promise rejection: Error."
+                    ),
+                    "{text}"
+                );
+            }
+        }
+    }
+    for (config, enabled) in [
+        (r#"{"extends":"./base.json","errorOptions":{"noUnhandledPromises":false}}"#, true),
+        (r#"{"extends":"./base.json"}"#, false),
+        (r#"{"extends":"./base.json","compilerOptions":{"noCheck":true}}"#, true),
+    ] {
+        let (success, text) = run(config, enabled);
+        assert!(success, "{text}");
+    }
+    let (success, text) =
+        run(r#"{"extends":"./base.json","errorOptions":{"noUnhandledPromises":"true"}}"#, true);
+    assert!(
+        !success && text.contains("errorOptions.noUnhandledPromises") && text.contains("boolean"),
+        "{text}"
+    );
+    // Shared root obligations must not produce both 98001 and 98004.
+    let (success, text) = run(
+        r#"{"extends":"./base.json","files":["bare_root.ts"],"errorOptions":{"noUnhandledRootErrors":true}}"#,
+        true,
+    );
+    assert!(!success && text.contains("TS98004") && !text.contains("TS98001"), "{text}");
+    // Persist the option, invalidate body-only changes, and clear diagnostics when disabled.
+    std::fs::write(
+        dir.join("callee.ts"),
+        "export async function task(): Promise<void> { throw new Error('error'); }",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("incremental.ts"),
+        "import { task } from './callee'; function wrapper() { task(); }",
+    )
+    .unwrap();
+    let incremental = r#"{"extends":"./base.json","compilerOptions":{"incremental":true},"files":["incremental.ts"]}"#;
+    let (success, text) = run(incremental, true);
+    assert!(!success && text.contains("TS98004"), "{text}");
+    assert!(
+        std::fs::read_to_string(dir.join("tsconfig.tsbuildinfo"))
+            .unwrap()
+            .contains("noUnhandledPromises")
+    );
+    std::fs::write(dir.join("callee.ts"), "export async function task(): Promise<void> {}")
+        .unwrap();
+    let (success, text) = run(incremental, true);
+    assert!(success, "{text}");
+    std::fs::write(
+        dir.join("callee.ts"),
+        "export async function task(): Promise<void> { throw new Error('error'); }",
+    )
+    .unwrap();
+    let (success, text) = run(incremental, true);
+    assert!(!success && text.contains("TS98004"), "{text}");
+    let (success, text) = run(
+        r#"{"extends":"./base.json","compilerOptions":{"incremental":true},"files":["incremental.ts"],"errorOptions":{"noUnhandledPromises":false}}"#,
+        true,
+    );
+    assert!(success, "{text}");
+    let (success, text) = run(incremental, false);
+    assert!(success, "{text}");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn errorscript_root_errors_and_config_inheritance() {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join(format!("../../target/errs-roots-{}", std::process::id()));

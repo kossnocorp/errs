@@ -1505,8 +1505,10 @@ pub fn compiler_options_affect_semantic_diagnostics(
 ) -> bool {
     // ErrorScript effects depend on dependency bodies, not only the declaration signatures cached by TS.
     if errs::enabled()
-        || new_options
-            .is_some_and(|options| options.error_options.no_unhandled_root_errors == Some(true))
+        || new_options.is_some_and(|options| {
+            options.error_options.no_unhandled_root_errors == Some(true)
+                || options.error_options.no_unhandled_promises == Some(true)
+        })
     {
         return true;
     }

@@ -12,7 +12,10 @@ pub fn write_build_info(options: &CompilerOptions, entries: &mut Option<JsonMap>
     if let Some(enabled) = options.error_options.no_implicit_returns {
         error_options.insert("noImplicitReturns".to_string(), Value::Bool(enabled));
     }
-    // Explicit Returns contracts are checked even when both optional diagnostics are disabled.
+    if let Some(enabled) = options.error_options.no_unhandled_promises {
+        error_options.insert("noUnhandledPromises".to_string(), Value::Bool(enabled));
+    }
+    // Explicit Returns contracts are checked even when optional diagnostics are disabled.
     if crate::enabled() {
         error_options.insert("returnsContracts".to_string(), Value::Bool(true));
     }
@@ -33,6 +36,9 @@ pub fn read_build_info(options: &mut CompilerOptions, name: &str, value: &Value)
         options.error_options.no_unhandled_root_errors = Some(*enabled);
     }
     if let Value::Object(fields) = value {
+        if let Some(Value::Bool(enabled)) = fields.get("noUnhandledPromises") {
+            options.error_options.no_unhandled_promises = Some(*enabled);
+        }
         if let Some(Value::Bool(enabled)) = fields.get("noImplicitReturns") {
             options.error_options.no_implicit_returns = Some(*enabled);
         }

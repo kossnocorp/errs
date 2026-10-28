@@ -3,6 +3,7 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ErrorOptions {
     pub no_unhandled_root_errors: Option<bool>,
+    pub no_unhandled_promises: Option<bool>,
     pub no_implicit_returns: Option<bool>,
     /// Internal incremental-cache marker; not a user-facing configuration property.
     pub returns_contracts: bool,
@@ -15,6 +16,9 @@ impl ErrorOptions {
         }
         if other.no_implicit_returns.is_some() {
             self.no_implicit_returns = other.no_implicit_returns;
+        }
+        if other.no_unhandled_promises.is_some() {
+            self.no_unhandled_promises = other.no_unhandled_promises;
         }
     }
 }

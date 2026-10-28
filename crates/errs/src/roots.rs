@@ -48,7 +48,7 @@ impl<T: Copy + Eq> Flow<T> {
     }
 }
 
-fn extend<T: Copy + Eq>(target: &mut Vec<RootError<T>>, source: &[RootError<T>]) {
+pub fn extend<T: Copy + Eq>(target: &mut Vec<RootError<T>>, source: &[RootError<T>]) {
     for error in source {
         if let Some(existing) =
             target.iter_mut().find(|e| e.node == error.node && e.rejection == error.rejection)
@@ -60,7 +60,7 @@ fn extend<T: Copy + Eq>(target: &mut Vec<RootError<T>>, source: &[RootError<T>])
     }
 }
 
-fn types<T: Copy + Eq>(values: &[RootError<T>]) -> ErrorSet<T> {
+pub fn types<T: Copy + Eq>(values: &[RootError<T>]) -> ErrorSet<T> {
     let mut errors = ErrorSet::default();
     for value in values {
         errors.extend(&value.errors);

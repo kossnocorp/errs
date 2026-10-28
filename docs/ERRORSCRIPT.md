@@ -8,15 +8,16 @@ target/debug/tsrs --errorscript -p path/to/project --noEmit
 target/debug/tsrs --errorscript --lsp -stdio
 ```
 
-The CLI infers error metadata and checks explicit `Returns<Value, Error>` return contracts. `errorOptions.noUnhandledRootErrors` opts into root-execution diagnostics; `errorOptions.noImplicitReturns` requires return contracts on throwing user-written functions. Ordinary TypeScript value assignability remains separate. Without `--errorscript`, effect checking and effect hovers are disabled; the bundled `Returns` intrinsic still erases to its value argument. The Rust query APIs can also request inference directly without enabling the CLI mode.
+The CLI infers error metadata and checks explicit `Returns<Value, Error>` return contracts. `errorOptions.noUnhandledRootErrors` opts into root-execution diagnostics; `errorOptions.noUnhandledPromises` checks outstanding promises in every scope; `errorOptions.noImplicitReturns` requires return contracts on throwing user-written functions. Ordinary TypeScript value assignability remains separate. Without `--errorscript`, effect checking and effect hovers are disabled; the bundled `Returns` intrinsic still erases to its value argument. The Rust query APIs can also request inference directly without enabling the CLI mode.
 
 ## Integration boundary
 
 * `crates/errs`: effect domain, native AST lowering, recursive fixed-point inference, and effect display. Its small `Host` trait asks the checker for type facts; it does not resolve annotations or interpret printed types.
-* `crates/errs_config`: dependency-free `ErrorOptions` with optional `no_unhandled_root_errors` and `no_implicit_returns` booleans, carried by a marked field in native compiler options. `tsrs_tsoptions/src/errs.rs` adapts native JSON values, with small hooks for config inheritance and diagnostic invalidation. A private cache marker records that explicit return contracts were checked.
+* `crates/errs_config`: dependency-free `ErrorOptions` with optional `no_unhandled_root_errors`, `no_unhandled_promises`, and `no_implicit_returns` booleans, carried by a marked field in native compiler options. `tsrs_tsoptions/src/errs.rs` adapts native JSON values, with small hooks for config inheritance and diagnostic invalidation. A private cache marker records that explicit return contracts were checked.
 * `crates/tsrs_checker/src/errs/returns.rs`: native intrinsic identification, alias/contextual-signature substitution, exact error-type comparison, and declaration diagnostics. Declarations beside `NoInfer` in `lib.es5.d.ts` expose `Returns` and `Throws`. `errs/throws.rs` implements native `Throws<F>` reduction, deferred operand instantiation, and parameter identity in checker-local side tables, with marked hooks for intrinsic resolution and type serialization. Shared types and signature layouts are unchanged.
 * `crates/tsrs_ls/src/errs.rs`: the 98003 quick-fix provider, registered through one marked native code-action hook. It recomputes native return/error types, builds scope-aware type syntax, and uses the ordinary change tracker and LSP edit transport.
 * `crates/errs/src/roots.rs`: root execution, exception handlers, and outstanding promise obligations. The checker adapter renders native diagnostic 98001 at the escaping throw/call/chain, shared by CLI and LSP diagnostics.
+* `crates/errs/src/promises.rs`: scope-local promise obligations, including callbacks and unused functions. Diagnostic 98004 identifies a potentially rejecting promise that is neither handled nor transferred by return/await. Abrupt exits and finally blocks preserve ownership independently of callable error summaries.
 * `crates/tsrs_checker/src/errs.rs`: native semantic adapter and public queries: `infer_error_effects`, `error_effect_of_node`, `error_effect_of_signature`, `error_effect_at`, and the plain-text wrapper `error_effect_display_at`.
 * `crates/errs_ls`: Markdown effect rendering with declaration links from native type/alias symbols and union constituents. A callback uses the host language service's source-map-aware URI and UTF-16 position conversion. Plain-text clients retain the text-only display.
 * `Checker::errs_inference`: a clearly marked, checker-owned side table attaching effects to native function declarations and call expressions. Signature queries use their declaration and native generic mapper. No fields are added to shared ASTs, types, or signatures, and no upstream arena layouts change.
@@ -97,7 +98,7 @@ Add this top-level sibling of `compilerOptions` to `tsconfig.json` (in ErrorScri
 
 The option is optional and off by default. It inherits through `extends`; explicit `false` overrides an inherited `true`. Invalid non-boolean values and unknown error options are config errors. The extension supplies JSON completion/validation for this section.
 
-With it enabled, executable module/script code must handle inferred throws and promise rejections, including unknown/any effects. Uncalled function bodies do not require local handling. Pure calls (including pure async calls) produce no root errors. Unmodelled external calls such as `console.error`, `console.log`, and `Math.random` currently carry unknown effects and require handling when those effects escape root execution. Any/unknown error types are conservatively represented and reported as `unknown`. A console call inside a catch handler can therefore produce its own root error; a surrounding handler must catch it. Unknown rejections from promise callbacks likewise remain obligations until handled.
+With it enabled, executable module/script code must handle inferred throws and promise rejections, including unknown/any effects. Uncalled function bodies do not require local handling. Pure calls (including pure async calls and the annotated built-ins above) produce no root errors. Unmodelled external calls carry unknown effects and require handling when those effects escape root execution. Any/unknown error types are conservatively represented and reported as `unknown`. Unknown rejections from promise callbacks likewise remain obligations until handled.
 
 ```ts
 function fail() { throw new Error('failure'); }
@@ -115,6 +116,40 @@ rejected().catch(() => fail());   // handler's error still escapes
 Immutable local promise aliases can be handled in subsequent statements; a conditional handler must cover every analysed branch. `finally` does not consume rejections. Rethrows and failures in handlers remain obligations. Diagnostics use the native checking pipeline (including normal file-checking controls); `--noEmitOnError` sees them like ordinary type errors.
 
 Incremental build information records the checking configuration and a return-contract marker so disabling ErrorScript or its options cannot reuse old effect errors. In ErrorScript mode, semantic diagnostics are recomputed across snapshots: changing a dependency body can change its errors without changing its TypeScript declaration signature.
+
+## Unhandled promises
+
+Enable `errorOptions.noUnhandledPromises` to report diagnostic **98004** for potentially rejecting promises left outstanding in module code, functions, callbacks, constructors, and field initializers. This option defaults to false, inherits through `extends`, and supports an explicit false override. It checks function bodies even when they are not called. Unknown rejection effects are included; promises inferred never to reject are accepted.
+
+```json
+{
+  "errorOptions": {
+    "noUnhandledPromises": true
+  }
+}
+```
+
+```ts
+async function rejected() { throw new Error('rejection'); }
+
+rejected().catch(() => {
+  rejected(); // 98004 here: this promise is detached from the outer chain
+});
+
+rejected().catch(() => {
+  rejected(); // still 98004, even with the outer handler below
+}).catch(() => {});
+
+rejected().catch(() => rejected()).catch(() => {}); // handled
+rejected().catch(async () => { await rejected(); }).catch(() => {}); // handled
+function forward() { return rejected(); } // responsibility passes to the caller
+```
+
+Returning a promise or awaiting it satisfies this local check. An awaited rejection becomes a synchronous effect of the surrounding body (and a rejection of an async function); `noUnhandledRootErrors` and return contracts continue to check those effects. A synchronous `try/catch` around an unawaited promise does not handle it. Neither does `void`. Immutable local aliases can be handled in later statements; handling must cover all analysed paths. A return overridden by `finally` does not transfer its abandoned promise.
+
+The options are independent: with `noUnhandledPromises` disabled, the detached callback example above produces no error even when `noUnhandledRootErrors` is enabled. With it enabled, only the inner call receives 98004. If both options identify the same top-level promise, only 98004 is emitted. Detached rejections are not added to the outer promise's effect type.
+
+The existing inference limitations apply, including unmodelled promise combinators, dynamic calls, mutable aliases, and ownership transfers through arbitrary arguments or object storage. Branches and loops are conservative; distinct value paths are bounded with a conservative fallback. `testdata/errs/promises-cases.txt` covers local handling, return/await transfer, detached callbacks, aliases, branches, finally, and pure/unknown effects; CLI tests also cover configuration, diagnostic locations, option interaction, and incremental invalidation.
 
 ## Checked return contracts
 

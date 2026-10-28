@@ -10,7 +10,9 @@ pub mod throws;
 
 impl Checker {
     pub fn unhandled_root_error_diagnostics(&mut self, file: P<SourceFile>) -> Vec<P<Diagnostic>> {
-        if self.compiler_options.error_options.no_unhandled_root_errors != Some(true)
+        let roots = self.compiler_options.error_options.no_unhandled_root_errors == Some(true);
+        let promises = self.compiler_options.error_options.no_unhandled_promises == Some(true);
+        if !(roots || promises)
             || self.compiler_options.no_check.is_true()
             || file.is_declaration_file()
         {
@@ -18,11 +20,17 @@ impl Checker {
         }
         self.infer_error_effects();
         let inference = self.errs_inference.take().unwrap();
-        let errors = inference.root_errors(self, file);
+        let mut errors = if roots { inference.root_errors(self, file) } else { Vec::new() };
+        let unhandled =
+            if promises { inference.unhandled_promises(self, file) } else { Vec::new() };
+        // Prefer the promise-specific diagnostic when both options report the same obligation.
+        errors.retain(|error| !error.rejection || !unhandled.iter().any(|p| p.node == error.node));
         self.errs_inference = Some(inference);
         errors
             .into_iter()
-            .map(|error| {
+            .map(|error| (error, true))
+            .chain(unhandled.into_iter().map(|error| (error, false)))
+            .map(|(error, root)| {
                 let mut names: Vec<_> =
                     error.errors.types.iter().map(|&ty| self.type_to_string_exported(ty)).collect();
                 names.sort();
@@ -31,13 +39,15 @@ impl Checker {
                     names.push("unknown".to_string());
                 }
                 let channel = if error.rejection { "promise rejection" } else { "error" };
-                let remedy = if error.rejection {
+                let remedy = if !root {
+                    "Return or await this promise, or attach a rejection handler (errorOptions.noUnhandledPromises)."
+                } else if error.rejection {
                     "Handle it with a rejection handler or await it inside try/catch."
                 } else {
                     "Handle it with try/catch."
                 };
-                let text =
-                    format!("Unhandled root-level {channel}: {}. {remedy}", names.join(" | "));
+                let scope = if root { "root-level " } else { "" };
+                let text = format!("Unhandled {scope}{channel}: {}. {remedy}", names.join(" | "));
                 let range = TextRange::new(
                     tsrs_scanner::get_token_pos_of_node(error.node, file, false),
                     error.node.end().expect_source("root error"),
@@ -45,7 +55,7 @@ impl Checker {
                 ast::new_diagnostic_from_text(
                     Some(file),
                     range,
-                    98001,
+                    if root { 98001 } else { 98004 },
                     diagnostics::Category::Error,
                     &text,
                     &[],
